@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0
+
+pragma solidity >=0.7.0 <0.9.0;
+
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/structs/EnumerableSet.sol";
 
 library RegistryEngine {
@@ -19,6 +23,12 @@ library RegistryEngine {
         bytes32 position = keccak256("diamond.standard.petsafe.registry.storage");
         assembly { rs.slot := position }
     }
+
+    function getPetSafe() public view returns (address) {
+        RegistryStorage storage rs = registryStorage();
+        return rs.petSafe;
+    }
+
 
     function setPetSafe(address _petSafe) internal {
         RegistryStorage storage rs = registryStorage();
@@ -42,14 +52,17 @@ library RegistryEngine {
 
     function registerPet(address _pet) internal returns (bool) {
         RegistryStorage storage rs = registryStorage();
-        require(!rs.allPets[_pet], "Pet Already Registered!");
+        if(rs.allPets[_pet]){
+            return false;
+        }
         rs.allPets[_pet] = true;
+        return true;
     }
 
     function addLostPet(address _pet) internal returns (bool) {
         RegistryStorage storage rs = registryStorage();
         if (isRegisteredPet(msg.sender)){
-            return lostPets.add(_pet);
+            return rs.lostPets.add(_pet);
         } else {
             return false;
         }
@@ -68,7 +81,7 @@ library RegistryEngine {
 contract Registry {
    
    modifier isPetSafe() {
-       require(msg.sender == RegistryEngine.PetSafe, "Caller is not PetSafe!");
+       require(msg.sender == RegistryEngine.getPetSafe(), "Caller is not PetSafe!");
        _;
    }
 
@@ -79,6 +92,7 @@ contract Registry {
 
    modifier petIsLost() {
        require(RegistryEngine.isLostPet(msg.sender), "Caller is not a Lost Pet!");
+       _;
    }
 
 
@@ -99,7 +113,7 @@ contract Registry {
    }
 
    function lostPets() public view returns (address[] memory){
-       return RegistryEngine.getLostPets(msg.sender);
+       return RegistryEngine.getLostPets();
    }
 
 }

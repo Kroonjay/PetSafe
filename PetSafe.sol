@@ -23,7 +23,7 @@ contract PetSafe {
 
     modifier canRegister() {
         if(status==Status.OpenZima){
-            require(isZima());
+            require(msg.sender == Zima, "PetSafe is Closed");
             _;
         } else {
             require(status==Status.Open, "PetSafe is Closed");
@@ -37,7 +37,7 @@ contract PetSafe {
     }
 
     function registerPet(bytes32 _identifier) public canRegister returns (address){
-        Pet newPet = new Pet(_identifier, msg.sender);
+        Pet newPet = new Pet(_identifier, msg.sender, address(registry));
         bool didRegister = registry.registerPet(address(newPet));
         if (!didRegister){
             revert("Registration Failed!");

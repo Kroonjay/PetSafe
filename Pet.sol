@@ -1,5 +1,10 @@
-import "./PetStatus.sol";
+// SPDX-License-Identifier: GPL-3.0
+
+pragma solidity >=0.7.0 <0.9.0;
+
 import "./PetRegistry.sol";
+
+enum PetStatus{Unregistered, Safe, Lost, Found}
 
 contract Pet {
 
@@ -36,13 +41,14 @@ contract Pet {
         registry = Registry(_registry);
     }
     //TODO Add Reward Mechanism
-    function lost() public isOwner isSafe returns (bool success){
+    function lost() public isOwner isSafe returns (bool){
         bool didRegister = registry.addLostPet();
         if (!didRegister){
-            revert("Failed to Update Registry!");
+            return false;
         }
         status = PetStatus.Lost;
         delete keeper; //Unset keeper as pet is presumed lost
+        return true;
     }
 
     function found(uint _identifier) public isLost {
