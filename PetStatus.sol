@@ -1,0 +1,1 @@
+enum PetStatus{Unregistered, Safe, Lost, Found}
