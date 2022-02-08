@@ -91,6 +91,11 @@ library PetEngine {
         ps.details.petType=_type;
     }
 
+    function getPetType() internal view returns (PetType) {
+        PetStorage storage ps = petStorage();
+        return ps.details.petType;
+    }
+
     function setDateOfBirth(uint _dob) internal isUnregistered{
         PetStorage storage ps = petStorage();
         require(ps.details.dateOfBirth==0, "DoB Already Set!");
@@ -118,6 +123,11 @@ library PetEngine {
         PetStorage storage ps = petStorage();
         emit KeeperChanged(ps.keeper, _keeper);
         ps.keeper = _keeper;
+    }
+
+    function getKeeper() internal view returns (address) {
+        PetStorage storage ps = petStorage();
+        return ps.keeper;
     }
 
     function setRegistry(address _registry) internal {
@@ -222,6 +232,11 @@ library PetEngine {
         ps.status = _status;
     }
 
+    function getStatus() internal view returns (PetStatus) {
+        PetStorage storage ps = petStorage();
+        return ps.status;
+    }
+
     function getHash() internal view returns (bytes32) {
         PetStorage storage ps = petStorage();
         return keccak256(abi.encode(ps.details));
@@ -230,9 +245,8 @@ library PetEngine {
     function register() internal {
         require(canRegister(), "Registration Failed");
         PetStorage storage ps = petStorage();
-        bytes32 petHash = getHash();
-        ps.registry.addPetDetails(petHash);
-        require(ps.registry.isRegisteredPet(petHash), "Failed to Update Registry");
+        ps.registry.addPetDetails(getHash());
+        require(ps.registry.isRegisteredPet(getHash()), "Failed to Update Registry");
         setStatus(PetStatus.Safe);
     }
 
@@ -269,22 +283,38 @@ contract Pet {
         _;
     }
 
-    function setPermDetails(PetType _petType, string memory _name, uint _dob) external {
+    function owner() external view returns (address) {
+        return PetEngine.getOwner();
+    }
+
+    function keeper() external view returns (address) {
+        return PetEngine.getKeeper();
+    }
+
+    function name() external view returns (string memory) {
+        return PetEngine.getName();
+    }
+
+    function petType() external view returns (PetType) {
+        return PetEngine.getPetType();
+    }
+
+    function setPermDetails(PetType _petType, string memory _name, uint _dob) external isOwner {
         PetEngine.setPermDetails(_petType, _name, _dob);
     }
 
-    function setColors(PetColor _primaryColor, PetColor _secondaryColor, PetMarking _markings) external {
+    function setColors(PetColor _primaryColor, PetColor _secondaryColor, PetMarking _markings) external isOwner {
         PetEngine.setColors(_primaryColor, _secondaryColor, _markings);
     }
 
-    function setTemperment(PetTemperment _temperment, bool _respondsToName) internal {
+    function setTemperment(PetTemperment _temperment, bool _respondsToName) external isOwner {
         PetEngine.setTemperment(_temperment, _respondsToName);
     }
-    function setHome(uint8 _homeLatitude, uint8 _homeLongitude) internal {
+    function setHome(uint8 _homeLatitude, uint8 _homeLongitude) external isOwner {
         PetEngine.setHome(_homeLatitude, _homeLongitude);
     }
 
-    function init(bytes32 _identifier, address _owner, address _registry) external {
+    function init(bytes32 _identifier, address _owner, address _registry) external isOwner {
         PetEngine.init(_identifier, _owner, _registry);
     }
 

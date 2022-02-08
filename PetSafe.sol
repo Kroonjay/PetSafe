@@ -37,8 +37,9 @@ contract PetSafe {
     }
 
     function registerPet(bytes32 _identifier) public canRegister returns (address){
-        Pet newPet = new Pet(_identifier, msg.sender, address(registry));
-        bool didRegister = registry.registerPet(address(newPet));
+        Pet newPet = new Pet();
+        newPet.init(_identifier, msg.sender, address(registry));
+        bool didRegister = registry.addNewPet(address(newPet));
         if (!didRegister){
             revert("Registration Failed!");
         }
