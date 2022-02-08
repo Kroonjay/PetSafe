@@ -2,7 +2,7 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/structs/EnumerableSet.sol";
+import "./EnumerableSet.sol";
 
 library RegistryEngine {
 
@@ -14,6 +14,7 @@ library RegistryEngine {
     struct RegistryStorage {
         address petSafe;
         mapping(address => bool) allPets;
+        mapping(bytes32 => address) petDetails; //Mapping of pet hashes that can be used to identify a pet based on characteristics, set during registration
         EnumerableSet.AddressSet lostPets;
     }
 
@@ -35,9 +36,29 @@ library RegistryEngine {
         rs.petSafe = _petSafe;
     }
 
-    function isRegisteredPet(address _pet) public view returns (bool) {
+    function isPet(address _pet) public view returns (bool) {
         RegistryStorage storage rs = registryStorage();
         return rs.allPets[_pet];
+    }
+
+    function isValidDetails(bytes32 _details, address _pet) internal view returns (bool){
+        RegistryStorage storage rs = registryStorage();
+        if (rs.petDetails[_details] != address(0)){
+            if(rs.petDetails[_details] == _pet) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    
+    function isRegisteredPet(bytes32 _details, address _pet) public view returns (bool) {
+        if(isPet(_pet)){
+            if(isValidDetails(_details, _pet)){
+                return true;
+            }
+        }
+        return false;
     }
 
     function getLostPets() public view returns (address[] memory){
@@ -50,7 +71,7 @@ library RegistryEngine {
         return rs.lostPets.contains(_pet);
     }
 
-    function registerPet(address _pet) internal returns (bool) {
+    function addNewPet(address _pet) internal returns (bool) {
         RegistryStorage storage rs = registryStorage();
         if(rs.allPets[_pet]){
             return false;
@@ -59,9 +80,14 @@ library RegistryEngine {
         return true;
     }
 
+    function addPetDetails(address _pet, bytes32 _details) internal {
+        RegistryStorage storage rs = registryStorage();
+        rs.petDetails[_details] = _pet;
+    }
+
     function addLostPet(address _pet) internal returns (bool) {
         RegistryStorage storage rs = registryStorage();
-        if (isRegisteredPet(msg.sender)){
+        if (isPet(msg.sender)){
             return rs.lostPets.add(_pet);
         } else {
             return false;
@@ -85,8 +111,13 @@ contract Registry {
        _;
    }
 
-   modifier petIsRegistered() {
-       require(RegistryEngine.isRegisteredPet(msg.sender), "Caller is not a Registered Pet!");
+    modifier petIsValid() {
+        require(RegistryEngine.isPet(msg.sender), "Caller is Not a Valid Pet!");
+        _;
+    }
+
+   modifier petIsRegistered(bytes32 _details) {
+       require(RegistryEngine.isRegisteredPet(_details, msg.sender), "Caller is not a Registered Pet!");
        _;
    }
 
@@ -100,11 +131,27 @@ contract Registry {
        RegistryEngine.setPetSafe(msg.sender);
    }
 
-   function registerPet(address _newPet) public isPetSafe returns (bool){
-       return RegistryEngine.registerPet(_newPet);
+   function addNewPet(address _newPet) public isPetSafe returns (bool){
+       return RegistryEngine.addNewPet(_newPet);
    }
 
-   function addLostPet() public petIsRegistered returns (bool) {
+   function addPetDetails(bytes32 _details) public petIsValid {
+       RegistryEngine.addPetDetails(msg.sender, _details);
+   }
+
+   function isPet() public view returns (bool){
+       return RegistryEngine.isPet(msg.sender);
+   }
+
+   function isRegisteredPet(bytes32 _details) public view returns (bool){
+       return RegistryEngine.isRegisteredPet(_details, msg.sender);
+   }
+
+   function isLostPet() public view returns (bool){
+       return RegistryEngine.isLostPet(msg.sender);
+   }
+
+   function addLostPet(bytes32 _details) public petIsRegistered(_details) returns (bool) {
        return RegistryEngine.addLostPet(msg.sender);
    }
 
