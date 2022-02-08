@@ -314,7 +314,8 @@ contract Pet {
         PetEngine.setHome(_homeLatitude, _homeLongitude);
     }
 
-    function init(bytes32 _identifier, address _owner, address _registry) external isOwner {
+    function init(bytes32 _identifier, address _owner, address _registry) external {
+        PetEngine.setPetSafe(msg.sender);
         PetEngine.init(_identifier, _owner, _registry);
     }
 
