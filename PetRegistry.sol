@@ -8,7 +8,11 @@ library RegistryEngine {
 
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    
+    event PetCreated(address indexed PetAddress, address indexed OwnerAddress);
+    event PetRegistered(address indexed PetAddress, bytes32 indexed PetDetails);
+    event PetLost(address indexed PetAddress, bytes32 indexed PetDetails);
+    event PetFound(address indexed PetAddress, address indexed KeeperAddress);
+
 
 
     struct RegistryStorage {
@@ -71,31 +75,35 @@ library RegistryEngine {
         return rs.lostPets.contains(_pet);
     }
 
-    function addNewPet(address _pet) internal returns (bool) {
+    function addNewPet(address _pet, address _owner) internal returns (bool) {
         RegistryStorage storage rs = registryStorage();
         if(rs.allPets[_pet]){
             return false;
         }
         rs.allPets[_pet] = true;
+        emit PetCreated(_pet, _owner);
         return true;
     }
 
     function addPetDetails(address _pet, bytes32 _details) internal {
         RegistryStorage storage rs = registryStorage();
         rs.petDetails[_details] = _pet;
+        emit PetRegistered(_pet, _details);
     }
 
-    function addLostPet(address _pet) internal returns (bool) {
+    function addLostPet(address _pet, bytes32 _petDetails) internal returns (bool) {
         RegistryStorage storage rs = registryStorage();
-        if (isPet(msg.sender)){
+        if (isPet(_pet)){
+            emit PetLost(_pet, _petDetails);
             return rs.lostPets.add(_pet);
         } else {
             return false;
         }
     }
 
-    function removeLostPet(address _pet) internal returns (bool) {
+    function removeLostPet(address _pet, address _keeper) internal returns (bool) {
         RegistryStorage storage rs = registryStorage();     
+        emit PetFound(_pet, _keeper);
         return rs.lostPets.remove(_pet);
     }
 
@@ -105,6 +113,12 @@ library RegistryEngine {
 
 
 contract Registry {
+
+    event PetCreated(address indexed PetAddress, address indexed OwnerAddress);
+    event PetRegistered(address indexed PetAddress, uint indexed PetType, string indexed PetName);
+    event PetLost(address indexed PetAddress, bytes32 indexed PetDetails);
+    event PetFound(address indexed PetAddress, address indexed KeeperAddress);
+
    
    modifier isPetSafe() {
        require(msg.sender == RegistryEngine.getPetSafe(), "Caller is not PetSafe!");
@@ -131,8 +145,8 @@ contract Registry {
        RegistryEngine.setPetSafe(msg.sender);
    }
 
-   function addNewPet(address _newPet) public isPetSafe returns (bool){
-       return RegistryEngine.addNewPet(_newPet);
+   function addNewPet(address _newPet, address _petOwner) public isPetSafe returns (bool){
+       return RegistryEngine.addNewPet(_newPet, _petOwner);
    }
 
    function addPetDetails(bytes32 _details) public petIsValid {
@@ -152,11 +166,11 @@ contract Registry {
    }
 
    function addLostPet(bytes32 _details) public petIsRegistered(_details) returns (bool) {
-       return RegistryEngine.addLostPet(msg.sender);
+       return RegistryEngine.addLostPet(msg.sender, _details);
    }
 
-   function removeLostPet() public petIsLost returns (bool) {
-       return RegistryEngine.removeLostPet(msg.sender);
+   function removeLostPet(address _keeper) public petIsLost returns (bool) {
+       return RegistryEngine.removeLostPet(msg.sender, _keeper);
    }
 
    function lostPets() public view returns (address[] memory){

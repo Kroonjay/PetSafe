@@ -7,7 +7,8 @@ import "./PetRegistry.sol";
 enum Status {Closed, Open, OpenZima}
 
 
-
+//TODO ADD function to generate a hash
+//TODO Re-Write this to use Diamond pattern
 contract PetSafe {
 
     address constant Zima = 0x56ddd1f7543a15d8a0acDFcf447E197aA45F0EB7; //Obviously needs to be updated between networks
@@ -39,7 +40,7 @@ contract PetSafe {
     function registerPet(bytes32 _identifier) public canRegister returns (address){
         Pet newPet = new Pet();
         newPet.init(_identifier, msg.sender, address(registry));
-        bool didRegister = registry.addNewPet(address(newPet));
+        bool didRegister = registry.addNewPet(address(newPet), msg.sender);
         if (!didRegister){
             revert("Registration Failed!");
         }

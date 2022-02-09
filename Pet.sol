@@ -22,11 +22,11 @@ library PetEngine {
     // (otherwise they won't show up in the contract ABI)
 
     event NameChanged(string oldName, string newName);
-    event StatusChanged(PetStatus indexed oldStatus, PetStatus indexed newStatus);
+    event StatusChanged(uint indexed oldStatus, uint indexed newStatus);
     event OwnerChanged(address indexed oldOwner, address indexed newOwner); //TODO Build support for this
     event KeeperChanged(address indexed oldKeeper, address indexed newKeeper);
     event RegistryChanged(address indexed oldRegistry, address indexed newRegistry);
-    event ColorsChanged(PetColor indexed primaryColor, PetColor indexed secondaryColor, PetMarking indexed markings);
+    event ColorsChanged(uint indexed primaryColor, uint indexed secondaryColor, uint indexed markings);
 
     struct PetDetails {
         string name;
@@ -147,7 +147,22 @@ library PetEngine {
         ps.details.primaryColor=_primaryColor;
         ps.details.secondaryColor=_secondaryColor;
         ps.details.markings=_markings;
-        emit ColorsChanged(ps.details.primaryColor, ps.details.secondaryColor, ps.details.markings);
+        emit ColorsChanged(uint(ps.details.primaryColor), uint(ps.details.secondaryColor), uint(ps.details.markings));
+    }
+
+    function getPrimaryColor() internal view returns (PetColor) {
+        PetStorage storage ps = petStorage();
+        return ps.details.primaryColor;
+    }
+
+    function getSecondaryColor() internal view returns (PetColor) {
+        PetStorage storage ps = petStorage();
+        return ps.details.secondaryColor;
+    }
+
+    function getMarkings() internal view returns (PetMarking) {
+        PetStorage storage ps = petStorage();
+        return ps.details.markings;
     }
     
     function setHome(uint8 _homeLatitude, uint8 _homeLongitude) internal {
@@ -196,21 +211,12 @@ library PetEngine {
     }
 
     function statusChangeIsValid(PetStatus _newStatus) internal view returns (bool) {
-        if(_newStatus == PetStatus.Unregistered){
-            if(canRegister()){
-                return true;
-            }
-
-        } else if(_newStatus == PetStatus.Safe){
-            if(canLose()){
-                return true;
-            }
+        if(_newStatus == PetStatus.Safe){
+            return canRegister();
         } else if(_newStatus == PetStatus.Lost){
-            if(canFind()){
-                return true;
-            }
+            return canLose();
         } else if(_newStatus == PetStatus.Found){
-            return true; //TODO Add Identifier reset functionality here
+            return canFind();
         }
         return false;
     }
@@ -228,7 +234,7 @@ library PetEngine {
     function setStatus(PetStatus _status) internal {
         require(statusChangeIsValid(_status), "Invalid Status Change");
         PetStorage storage ps = petStorage();
-        emit StatusChanged(ps.status, _status);
+        emit StatusChanged(uint(ps.status), uint(_status));
         ps.status = _status;
     }
 
@@ -263,7 +269,7 @@ library PetEngine {
         bytes32 _identifierHash = keccak256(abi.encodePacked(_secret));
         PetStorage storage ps = petStorage();
         require(_identifierHash == ps.identifier, "Invalid Secret");
-        require(ps.registry.removeLostPet(), "Failed to Update Registry");
+        require(ps.registry.removeLostPet(ps.keeper), "Failed to Update Registry");
     } 
 
 }
@@ -272,11 +278,11 @@ library PetEngine {
 contract Pet {
 
     event NameChanged(string oldName, string newName);
-    event StatusChanged(PetStatus indexed oldStatus, PetStatus indexed newStatus);
+    event StatusChanged(uint indexed oldStatus, uint indexed newStatus);
     event OwnerChanged(address indexed oldOwner, address indexed newOwner); //TODO Build support for this
     event KeeperChanged(address indexed oldKeeper, address indexed newKeeper);
     event RegistryChanged(address indexed oldRegistry, address indexed newRegistry);
-    event ColorsChanged(PetColor indexed primaryColor, PetColor indexed secondaryColor, PetMarking indexed markings);
+    event ColorsChanged(uint indexed primaryColor, uint indexed secondaryColor, uint indexed markings);
 
     modifier isOwner() {
         require(msg.sender == PetEngine.getOwner(), "Caller is not Pet Owner");
@@ -297,6 +303,10 @@ contract Pet {
 
     function petType() external view returns (PetType) {
         return PetEngine.getPetType();
+    }
+
+    function status() external view returns (PetStatus) {
+        return PetEngine.getStatus();
     }
 
     function setPermDetails(PetType _petType, string memory _name, uint _dob) external isOwner {
@@ -330,102 +340,4 @@ contract Pet {
     function found(uint _secret) external {
         PetEngine.found(_secret);
     }
-
-
-
 }
-
-
-
-
-// contract Pet {
-
-//     bytes32 public identifier; //Hash of Secret Number embedded on pet tag
-
-//     address private owner;
-
-//     address private keeper; //Same as owner when status == Safe, unset when lost, set to finder when found
-
-//     PetStatus public status;
-
-//     Registry private registry;
-
-//     modifier isOwner() {
-//         require(msg.sender == owner, "Caller is Not Owner");
-//         _;
-//     }
-
-//     modifier isSafe(){
-//         require(status == PetStatus.Safe, "Pet Not Safe");
-//         _;
-//     }
-
-//     modifier isLost(){
-//         require(status == PetStatus.Lost, "Pet Not Lost");
-//         _;
-//     }
-
-//     modifier isUnregistered(){
-//         require(status == PetStatus.Unregistered, "Pet Already Registered");
-//         _;
-//     }
-
-
-//     constructor(bytes32 _identifier, address _owner, address _registry){
-//         // identifier = keccak256(abi.encodePacked(_identifier));
-//         identifier = _identifier;
-//         owner = _owner;
-//         registry = Registry(_registry);
-//     }
-
-//     function setStatus(PetStatus _newStatus) internal {
-//         status = _newStatus;
-//         //TODO Add an Event Here
-//     }
-
-//     function setSafe() internal {
-//         setStatus(PetStatus.Safe);
-//         keeper = owner;
-//     }
-
-//     function setLost() internal {
-//         setStatus(PetStatus.Lost);
-//         delete keeper; //Unset keeper as pet is presumed lost
-//     }
-
-//     function setFound(address _keeper) internal {
-//         setStatus(PetStatus.Found);
-//         keeper = _keeper;
-//     }
-
-//     function verify() public isOwner isUnregistered returns (bool){
-//         bool didRegister = registry.isRegisteredPet();
-//         if (!didRegister){
-//             return false; //Not sure how this can happen but just in case
-//         }
-//         setSafe();
-//     }
-
-//     //TODO Add Reward Mechanism
-//     function lost() public isOwner isSafe returns (bool){
-//         bool didRegister = registry.addLostPet();
-//         if (!didRegister){
-//             return false;
-//         }
-//         setLost();
-//         return true;
-//     }
-
-//     function found(uint _identifier) public isLost {
-//         
-//         if(_identifierHash != identifier){
-//             revert ("Invalid Identifier!");
-//         }
-//         bool didRegister = registry.removeLostPet();
-//         if (!didRegister){
-//             revert("Failed to Update Registry!");
-//         }
-//         setFound(msg.sender); //Set keeper to caller with valid identifier, identifier is considered "burned"
-//     }
-
-// }
