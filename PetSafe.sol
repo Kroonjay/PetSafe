@@ -47,8 +47,16 @@ contract PetSafe {
         return address(newPet);
     }
 
-    function setStatus(Status _newStatus) public isZima {
+    function setStatus(Status _newStatus) internal isZima {
         status = _newStatus;
+    }
+
+    function open() public isZima {
+        setStatus(Status.Open);
+    }
+
+    function getIdentifier(uint _secret) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_secret));
     }
 }
 

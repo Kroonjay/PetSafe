@@ -270,6 +270,7 @@ library PetEngine {
         PetStorage storage ps = petStorage();
         require(_identifierHash == ps.identifier, "Invalid Secret");
         require(ps.registry.removeLostPet(ps.keeper), "Failed to Update Registry");
+        setStatus(PetStatus.Found);
     } 
 
 }
@@ -307,6 +308,18 @@ contract Pet {
 
     function status() external view returns (PetStatus) {
         return PetEngine.getStatus();
+    }
+
+    function primaryColor() external view returns (PetColor) {
+        return PetEngine.getPrimaryColor();
+    }
+
+    function secondaryColor() external view returns (PetColor) {
+        return PetEngine.getSecondaryColor();
+    }
+    
+    function markings() external view returns (PetMarking) {
+        return PetEngine.getMarkings();
     }
 
     function setPermDetails(PetType _petType, string memory _name, uint _dob) external isOwner {
