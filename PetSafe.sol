@@ -14,7 +14,7 @@ contract PetSafe {
     address constant Zima = 0x56ddd1f7543a15d8a0acDFcf447E197aA45F0EB7; //Obviously needs to be updated between networks
     Registry public registry;
 
-    Status private status;
+    Status public status;
 
     modifier isZima() {
         require(msg.sender == Zima, "Caller is Not Zima!");
