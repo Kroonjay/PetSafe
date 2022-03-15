@@ -102,6 +102,11 @@ library PetEngine {
         ps.details.dateOfBirth=_dob;
     }
 
+    function getDateOfBirth() internal view returns (uint256) {
+        PetStorage storage ps = petStorage();
+        return ps.details.dateOfBirth;
+    }
+
     function setOwner(address _owner) internal {
         PetStorage storage ps = petStorage();
         emit OwnerChanged(ps.owner, _owner);
@@ -175,11 +180,21 @@ library PetEngine {
         ps.details.homeLongitude = _homeLongitude;
     }
 
+    function getHome() internal view returns (uint8, uint8) {
+        PetStorage storage ps = petStorage();
+        return (ps.details.homeLatitude, ps.details.homeLongitude);
+    }
+
     function setTemperment(PetTemperment _temperment, bool _respondsToName) internal {
         require(_temperment > PetTemperment.Unregistered, "Pet Temperment Unset");
         PetStorage storage ps = petStorage();
         ps.details.temperment = _temperment;
         ps.details.respondsToName = _respondsToName;
+    }
+
+    function getTemperment() internal view returns (PetTemperment, bool) {
+        PetStorage storage ps = petStorage();
+        return (ps.details.temperment, ps.details.respondsToName);
     }
 
     function canRegister() internal view returns (bool) {
@@ -310,6 +325,10 @@ contract Pet {
         return PetEngine.getStatus();
     }
 
+    function dateOfBirth() external view returns (uint256) {
+        return PetEngine.getDateOfBirth();
+    }
+
     function primaryColor() external view returns (PetColor) {
         return PetEngine.getPrimaryColor();
     }
@@ -320,6 +339,14 @@ contract Pet {
     
     function markings() external view returns (PetMarking) {
         return PetEngine.getMarkings();
+    }
+
+    function home() external view returns (uint8, uint8) {
+        return PetEngine.getHome();
+    }
+
+    function temperment() external view returns (PetTemperment, bool) {
+        return PetEngine.getTemperment();
     }
 
     function setPermDetails(PetType _petType, string memory _name, uint _dob) external isOwner {

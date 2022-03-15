@@ -15,6 +15,7 @@ contract PetSafe {
     Registry public registry;
 
     Status public status;
+    uint256 public registrationFee; //Cost (in wei) to register a new Pet
 
     modifier isZima() {
         require(msg.sender == Zima, "Caller is Not Zima!");
@@ -37,7 +38,8 @@ contract PetSafe {
         registry = new Registry(); 
     }
 
-    function registerPet(bytes32 _identifier) public canRegister returns (address){
+    function registerPet(bytes32 _identifier) payable public canRegister returns (address){
+        require (msg.value == registrationFee, "Invalid Deposit Amount!");       
         Pet newPet = new Pet();
         newPet.init(_identifier, msg.sender, address(registry));
         bool didRegister = registry.addNewPet(address(newPet), msg.sender);
@@ -49,6 +51,10 @@ contract PetSafe {
 
     function setStatus(Status _newStatus) internal isZima {
         status = _newStatus;
+    }
+
+    function setRegistrationFee(uint256 _newFee) external isZima {
+        registrationFee = _newFee;
     }
 
     function open() public isZima {
