@@ -8,7 +8,7 @@ library RegistryEngine {
 
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    event PetCreated(address indexed PetAddress, address indexed OwnerAddress);
+    event PetCreated(uint PetCount, address indexed PetAddress, address indexed OwnerAddress);
     event PetRegistered(address indexed PetAddress, bytes32 indexed PetDetails);
     event PetLost(address indexed PetAddress, bytes32 indexed PetDetails);
     event PetFound(address indexed PetAddress, address indexed KeeperAddress);
@@ -17,6 +17,7 @@ library RegistryEngine {
 
     struct RegistryStorage {
         address petSafe;
+        uint petCount;
         mapping(address => bool) allPets;
         mapping(bytes32 => address) petDetails; //Mapping of pet hashes that can be used to identify a pet based on characteristics, set during registration
         EnumerableSet.AddressSet lostPets;
@@ -65,6 +66,11 @@ library RegistryEngine {
         return false;
     }
 
+    function getPetCount() public view returns (uint){
+        RegistryStorage storage rs = registryStorage();
+        return rs.petCount;
+    }
+
     function getLostPets() public view returns (address[] memory){
         RegistryStorage storage rs = registryStorage();
         return rs.lostPets.values();
@@ -81,7 +87,8 @@ library RegistryEngine {
             return false;
         }
         rs.allPets[_pet] = true;
-        emit PetCreated(_pet, _owner);
+        rs.petCount++;
+        emit PetCreated(rs.petCount, _pet, _owner);
         return true;
     }
 
@@ -114,7 +121,7 @@ library RegistryEngine {
 
 contract Registry {
 
-    event PetCreated(address indexed PetAddress, address indexed OwnerAddress);
+    event PetCreated(uint PetCount, address indexed PetAddress, address indexed OwnerAddress);
     event PetRegistered(address indexed PetAddress, uint indexed PetType, string indexed PetName);
     event PetLost(address indexed PetAddress, bytes32 indexed PetDetails);
     event PetFound(address indexed PetAddress, address indexed KeeperAddress);
@@ -155,6 +162,10 @@ contract Registry {
 
    function isPet() public view returns (bool){
        return RegistryEngine.isPet(msg.sender);
+   }
+
+   function petCount() public view returns (uint){
+       return RegistryEngine.getPetCount();
    }
 
    function isRegisteredPet(bytes32 _details) public view returns (bool){
