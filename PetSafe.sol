@@ -11,9 +11,9 @@ enum Status {Closed, Open, OpenZima}
 //TODO Re-Write this to use Diamond pattern
 contract PetSafe {
 
-    address constant Zima = 0x56ddd1f7543a15d8a0acDFcf447E197aA45F0EB7; //Obviously needs to be updated between networks
+    address payable constant Zima = payable(0x56ddd1f7543a15d8a0acDFcf447E197aA45F0EB7);
     Registry public registry;
-
+    uint private balance;
     Status public status;
     uint256 public registrationFee; //Cost (in wei) to register a new Pet
 
@@ -40,6 +40,7 @@ contract PetSafe {
 
     function registerPet(bytes32 _identifier) payable public canRegister returns (address){
         require (msg.value == registrationFee, "Invalid Deposit Amount!");       
+        balance += msg.value;
         Pet newPet = new Pet();
         newPet.init(_identifier, msg.sender, address(registry));
         bool didRegister = registry.addNewPet(address(newPet), msg.sender);
@@ -47,6 +48,10 @@ contract PetSafe {
             revert("Registration Failed!");
         }
         return address(newPet);
+    }
+
+    function getBalance() public view isZima returns(uint){
+        return balance;
     }
 
     function setStatus(Status _newStatus) internal isZima {
@@ -63,6 +68,10 @@ contract PetSafe {
 
     function getIdentifier(uint _secret) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(_secret));
+    }
+
+    function withdraw() public isZima {
+        Zima.transfer(balance);
     }
 }
 
