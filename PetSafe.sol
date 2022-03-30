@@ -11,6 +11,10 @@ enum Status {Closed, Open, OpenZima}
 //TODO Re-Write this to use Diamond pattern
 contract PetSafe {
 
+    event StatusChanged(uint indexed _oldStatus, uint indexed _newStatus);
+    event FeeChanged(uint indexed _oldFee, uint indexed _newFee);
+    event Withdrawal(uint indexed _balance);
+
     address payable constant Zima = payable(0x56ddd1f7543a15d8a0acDFcf447E197aA45F0EB7);
     Registry public registry;
     uint private balance;
@@ -55,10 +59,12 @@ contract PetSafe {
     }
 
     function setStatus(Status _newStatus) internal isZima {
+        emit StatusChanged(uint(status), uint(_newStatus));
         status = _newStatus;
     }
 
     function setRegistrationFee(uint256 _newFee) external isZima {
+        emit FeeChanged(registrationFee, _newFee);
         registrationFee = _newFee;
     }
 
@@ -71,7 +77,9 @@ contract PetSafe {
     }
 
     function withdraw() public isZima {
+        emit Withdrawal(balance);
         Zima.transfer(balance);
+
     }
 }
 
